@@ -1,77 +1,94 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>元素記号 神経衰弱ゲーム</title>
+<div id="element-game" style="width:100%; max-width:900px; margin:auto; font-family:sans-serif;">
 
 <style>
-body { margin:0; font-family:sans-serif; overflow:hidden; }
+#element-game * { box-sizing:border-box; user-select:none; }
 
-#header {
+#element-game .header {
     height:50px;
     background:#333;
     color:#fff;
     display:flex;
     justify-content:space-between;
     align-items:center;
-    padding:0 20px;
+    padding:0 15px;
 }
 
-#game-board { display:flex; flex-direction:column; height:calc(100vh - 50px); }
+#element-game .board {
+    display:flex;
+    flex-direction:column;
+    height:600px;
+}
 
-.area {
+#element-game .area {
     flex:1;
     display:grid;
     grid-template-columns:repeat(5,1fr);
     grid-template-rows:repeat(2,1fr);
-    gap:8px;
-    padding:10px;
+    gap:6px;
+    padding:8px;
     position:relative;
 }
 
-.area-title {
-    position:absolute;
-    top:50%; left:50%;
-    transform:translate(-50%,-50%);
-    font-size:3rem;
-    opacity:0.05;
+/* 境界線（上下の区別強化） */
+#element-game #bottom {
+    border-top: 3px dashed #ccc;
 }
 
-.card { perspective:1000px; cursor:pointer; touch-action:manipulation; }
+#element-game .card { perspective:1000px; cursor:pointer; }
 
-.card-inner {
+#element-game .inner {
     width:100%; height:100%;
     position:relative;
     transform-style:preserve-3d;
-    transition:transform 0.3s;
-}
-
-.card.flipped .card-inner { transform:rotateY(180deg); }
-
-.card.matched {
-    transform:scale(0);
-    opacity:0;
     transition:0.3s;
 }
 
-.card-front, .card-back {
+#element-game .flipped .inner { transform:rotateY(180deg); }
+
+#element-game .front,
+#element-game .back {
     position:absolute;
     width:100%; height:100%;
     display:flex;
     justify-content:center;
     align-items:center;
     backface-visibility:hidden;
-    border-radius:8px;
+    border-radius:6px;
     font-weight:bold;
 }
 
-.card-front { background:#607D8B; color:white; }
-.card-back { background:white; transform:rotateY(180deg); }
+#element-game .front { color:white; }
+#element-game .back {
+    background:white;
+    transform:rotateY(180deg);
+}
 
-#modal {
+/* ▼ ここが今回のポイント（上下色分け） */
+#element-game #top .front {
+    background:#1565C0;
+}
+
+#element-game #bottom .front {
+    background:#E65100;
+}
+
+#element-game #top .back {
+    color:#1565C0;
+}
+
+#element-game #bottom .back {
+    color:#E65100;
+}
+
+#element-game .matched {
+    opacity:0;
+    transform:scale(0);
+    transition:0.3s;
+}
+
+#element-game .modal {
     display:none;
-    position:fixed;
+    position:absolute;
     top:0; left:0;
     width:100%; height:100%;
     background:rgba(0,0,0,0.6);
@@ -79,256 +96,202 @@ body { margin:0; font-family:sans-serif; overflow:hidden; }
     align-items:center;
 }
 
-.modal-content {
+#element-game .modal-content {
     background:white;
     padding:20px;
     border-radius:10px;
     width:90%;
-    max-width:400px;
 }
 
-button {
+#element-game button {
     width:100%;
     padding:10px;
     background:#4CAF50;
     color:white;
     border:none;
 }
-
-#element-game #top .front {
-    background: #1565C0; /* 青系 */
-}
-
-#element-game #bottom .front {
-    background: #E65100; /* オレンジ系 */
-}
-
-#element-game #top .back {
-    color: #1565C0;
-}
-
-#element-game #bottom .back {
-    color: #E65100;
-}
-
 </style>
-</head>
 
-<body>
-
-<div id="header">
+<div class="header">
 <div>元素めくり</div>
 <div>
-タイム: <span id="time">0</span>秒　
-ミス: <span id="miss">0</span>
+タイム: <span id="t">0</span>秒　
+ミス: <span id="m">0</span>
 </div>
 </div>
 
-<div id="game-board">
-<div class="area" id="top"><div class="area-title">日本語名</div></div>
-<div class="area" id="bottom"><div class="area-title">元素記号</div></div>
+<div class="board">
+<div class="area" id="top"></div>
+<div class="area" id="bottom"></div>
 </div>
 
-<div id="modal">
+<div class="modal" id="modal">
 <div class="modal-content">
-<h2 id="modal-title"></h2>
-<div id="modal-text"></div>
-<button id="modal-btn">次へ</button>
+<h3 id="mt"></h3>
+<div id="txt"></div>
+<button id="btn">次へ</button>
 </div>
 </div>
 
 <script>
-const allElements = [
-{ name:'水素', symbol:'H', note:'宇宙で一番軽い元素。未来のクリーンエネルギーとしても注目されているよ。' },
-{ name:'ヘリウム', symbol:'He', note:'吸うと声が変わるガス！風船や飛行船を浮かせるのにも使われるよ。' },
-{ name:'リチウム', symbol:'Li', note:'スマホやパソコン、電気自動車の充電式バッテリーに欠かせない金属だよ。' },
-{ name:'ベリリウム', symbol:'Be', note:'X線を通しやすいから検査機器の窓や、火花が出ない特別な工具に使われるよ。' },
-{ name:'ホウ素', symbol:'B', note:'目の洗浄液や、熱に強いガラスを丈夫にするために使われているよ。' },
-{ name:'炭素', symbol:'C', note:'ダイヤモンドもこれでできている！' },
-{ name:'窒素', symbol:'N', note:'空気の78%を占めるガス。' },
-{ name:'酸素', symbol:'O', note:'呼吸に必要な元素。' },
-{ name:'ナトリウム', symbol:'Na', note:'食塩になる元素。' },
-{ name:'マグネシウム', symbol:'Mg', note:'燃えると強く光る。' },
-{ name:'アルミニウム', symbol:'Al', note:'軽くてサビにくい金属。' },
-{ name:'ケイ素', symbol:'Si', note:'半導体の材料。' },
-{ name:'リン', symbol:'P', note:'マッチに使われる。' },
-{ name:'硫黄', symbol:'S', note:'温泉のにおいのもと。' },
-{ name:'塩素', symbol:'Cl', note:'水の消毒に使われる。' },
-{ name:'鉄', symbol:'Fe', note:'最も使われる金属。' },
-{ name:'銅', symbol:'Cu', note:'10円玉の材料。電気をよく通す。' },
-{ name:'銀', symbol:'Ag', note:'アクセサリーに使われる。' },
-{ name:'亜鉛', symbol:'Zn', note:'サビ止めに使われる。' }
+(function(){
+
+const data=[
+{n:'水素',s:'H',note:'宇宙で一番軽い元素。'},
+{n:'ヘリウム',s:'He',note:'風船に使われる。'},
+{n:'リチウム',s:'Li',note:'電池に使われる。'},
+{n:'ベリリウム',s:'Be',note:'X線装置に使われる。'},
+{n:'ホウ素',s:'B',note:'ガラスを強くする。'},
+{n:'炭素',s:'C',note:'ダイヤモンドの材料。'},
+{n:'窒素',s:'N',note:'空気の78%。'},
+{n:'酸素',s:'O',note:'呼吸に必要。'},
+{n:'フッ素',s:'F',note:'歯を守る。'},
+{n:'ネオン',s:'Ne',note:'ネオンサイン。'},
+{n:'ナトリウム',s:'Na',note:'塩になる。'},
+{n:'マグネシウム',s:'Mg',note:'強く光る。'},
+{n:'アルミニウム',s:'Al',note:'軽い金属。'},
+{n:'ケイ素',s:'Si',note:'半導体材料。'},
+{n:'リン',s:'P',note:'マッチに使う。'},
+{n:'硫黄',s:'S',note:'温泉のにおい。'},
+{n:'塩素',s:'Cl',note:'水の消毒。'},
+{n:'アルゴン',s:'Ar',note:'電球に入る。'},
+{n:'カリウム',s:'K',note:'体に必要。'},
+{n:'カルシウム',s:'Ca',note:'骨を作る。'},
+{n:'鉄',s:'Fe',note:'最も使われる金属。'},
+{n:'銅',s:'Cu',note:'10円玉。電気を通す。'},
+{n:'銀',s:'Ag',note:'アクセサリー。'},
+{n:'亜鉛',s:'Zn',note:'サビ止め。'}
 ];
 
-let flippedTop=null;
-let flippedBottom=null;
-let isLocked=false;
-let isModalOpen=false;
-let matchCount=0;
-let missCount=0;
+let topSel=null, botSel=null, lock=false, modalOpen=false;
+let miss=0, match=0, start=null, timer;
 
-let startTime=null;
-let timer;
+const top=document.querySelector('#element-game #top');
+const bottom=document.querySelector('#element-game #bottom');
+const modal=document.querySelector('#element-game #modal');
+const mt=document.querySelector('#element-game #mt');
+const txt=document.querySelector('#element-game #txt');
+const btn=document.querySelector('#element-game #btn');
 
-const topArea=document.getElementById('top');
-const bottomArea=document.getElementById('bottom');
-const timeEl=document.getElementById('time');
-const missEl=document.getElementById('miss');
+function shuffle(a){ return a.sort(()=>Math.random()-0.5); }
 
-const modal=document.getElementById('modal');
-const modalTitle=document.getElementById('modal-title');
-const modalText=document.getElementById('modal-text');
-const modalBtn=document.getElementById('modal-btn');
+function card(d,type){
+let c=document.createElement('div');
+c.className='card';
 
-let modalCallback=null;
+let i=document.createElement('div');
+i.className='inner';
 
-function shuffle(a){
-return a.sort(()=>Math.random()-0.5);
-}
+let f=document.createElement('div');
+f.className='front';
+f.textContent='?';
 
-function init(){
-flippedTop=null;
-flippedBottom=null;
-matchCount=0;
-missCount=0;
-isLocked=false;
-startTime=null;
-clearInterval(timer);
+let b=document.createElement('div');
+b.className='back';
+b.textContent = type==='n'?d.n:d.s;
 
-timeEl.textContent=0;
-missEl.textContent=0;
+i.appendChild(f);
+i.appendChild(b);
+c.appendChild(i);
 
-topArea.innerHTML='<div class="area-title">日本語名</div>';
-bottomArea.innerHTML='<div class="area-title">元素記号</div>';
+c.onclick=()=>{
+if(lock||modalOpen) return;
 
-let pairs=shuffle([...allElements]).slice(0,10);
-
-shuffle([...pairs]).forEach(d=>topArea.appendChild(createCard(d,'name')));
-shuffle([...pairs]).forEach(d=>bottomArea.appendChild(createCard(d,'symbol')));
-}
-
-function createCard(data,type){
-let card=document.createElement('div');
-card.className='card';
-
-let inner=document.createElement('div');
-inner.className='card-inner';
-
-let front=document.createElement('div');
-front.className='card-front';
-front.textContent='?';
-
-let back=document.createElement('div');
-back.className='card-back';
-back.textContent= type==='name'?data.name:data.symbol;
-
-inner.appendChild(front);
-inner.appendChild(back);
-card.appendChild(inner);
-
-card.onclick=()=>clickCard(card,data,type);
-
-return card;
-}
-
-function clickCard(card,data,type){
-if(isLocked||isModalOpen) return;
-if(card.classList.contains('flipped')) return;
-
-if(!startTime){
-startTime=Date.now();
+if(!start){
+start=Date.now();
 timer=setInterval(()=>{
-timeEl.textContent=Math.floor((Date.now()-startTime)/1000);
+document.getElementById('t').textContent =
+Math.floor((Date.now()-start)/1000);
 },250);
 }
 
-card.classList.add('flipped');
+c.classList.add('flipped');
 
-if(type==='name'){
-if(flippedTop) flippedTop.element.classList.remove('flipped');
-flippedTop={element:card,data};
+if(type==='n'){
+if(topSel) topSel.c.classList.remove('flipped');
+topSel={c,d};
 }else{
-if(flippedBottom) flippedBottom.element.classList.remove('flipped');
-flippedBottom={element:card,data};
+if(botSel) botSel.c.classList.remove('flipped');
+botSel={c,d};
 }
 
-if(flippedTop && flippedBottom){
-check();
-}
-}
-
-function check(){
-isLocked=true;
+if(topSel && botSel){
+lock=true;
 
 setTimeout(()=>{
-if(flippedTop.data.symbol===flippedBottom.data.symbol){
+if(topSel.d.s===botSel.d.s){
 
-showModal(
+show(
 '正解！',
-`<strong>${flippedTop.data.symbol} は、${flippedTop.data.name}だね。</strong><br><br>${flippedTop.data.note}`,
+`<b>${topSel.d.s} は、${topSel.d.n}だね。</b><br><br>${topSel.d.note}`,
 ()=>{
-flippedTop.element.classList.add('matched');
-flippedBottom.element.classList.add('matched');
-matchCount++;
+topSel.c.classList.add('matched');
+botSel.c.classList.add('matched');
+match++;
 reset();
-if(matchCount===10) end();
-}
-);
+if(match===10) end();
+});
 
 }else{
 
-missCount++;
-missEl.textContent=missCount;
+miss++;
+document.getElementById('m').textContent=miss;
 
-showModal(
+show(
 'ちがうよ',
-`<strong>${flippedBottom.data.symbol} は、${flippedBottom.data.name}だよ。</strong><br><br>${flippedBottom.data.note}`,
+`<b>${botSel.d.s} は、${botSel.d.n}だよ。</b><br><br>${botSel.d.note}`,
 ()=>{
-flippedTop.element.classList.remove('flipped');
-flippedBottom.element.classList.remove('flipped');
+topSel.c.classList.remove('flipped');
+botSel.c.classList.remove('flipped');
 reset();
-}
-);
-
+});
 }
 },500);
 }
+};
 
-function reset(){
-flippedTop=null;
-flippedBottom=null;
-isLocked=false;
+return c;
 }
 
-function showModal(title,text,cb){
-isModalOpen=true;
-modalTitle.textContent=title;
-modalText.innerHTML=text;
-modalCallback=cb;
+function reset(){ topSel=null; botSel=null; lock=false; }
+
+function show(t,body,cb){
+modalOpen=true;
+mt.textContent=t;
+txt.innerHTML=body;
 modal.style.display='flex';
-}
 
-modalBtn.onclick=()=>{
+btn.onclick=()=>{
 modal.style.display='none';
-isModalOpen=false;
-if(modalCallback) modalCallback();
+modalOpen=false;
+cb();
 };
-
-modal.onclick=(e)=>{
-if(e.target===modal){
-modal.style.display='none';
-isModalOpen=false;
-if(modalCallback) modalCallback();
 }
-};
 
 function end(){
 clearInterval(timer);
-showModal('クリア！',`タイム ${timeEl.textContent} 秒<br>ミス ${missCount}`,init);
+show('クリア！','よくできました！',init);
 }
 
-window.onload=init;
+function init(){
+topSel=null; botSel=null;
+match=0; miss=0;
+document.getElementById('m').textContent=0;
+document.getElementById('t').textContent=0;
+start=null;
+
+let selected = shuffle([...data]).slice(0,10);
+
+top.innerHTML='';
+bottom.innerHTML='';
+
+shuffle([...selected]).forEach(d=>top.appendChild(card(d,'n')));
+shuffle([...selected]).forEach(d=>bottom.appendChild(card(d,'s')));
+}
+
+init();
+
+})();
 </script>
 
-</body>
-</html>
+</div>
