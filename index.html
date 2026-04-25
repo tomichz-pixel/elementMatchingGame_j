@@ -19,10 +19,9 @@
     flex-direction:column;
 }
 
-/* ▼ 少し余裕を持たせる */
 #element-game .area {
     display:grid;
-    grid-template-columns:repeat(auto-fit, minmax(60px, 1fr));
+    grid-template-columns:repeat(5, 1fr);
     gap:6px;
     padding:6px;
 }
@@ -31,57 +30,54 @@
     border-top: 2px dashed #ccc;
 }
 
-/* ▼ 高さを少し戻す（重要） */
 #element-game .card {
     width:100%;
-    aspect-ratio: 2 / 1; /* ← 2.2 → 2 にして余裕を確保 */
-    perspective:1000px;
     cursor:pointer;
     border-radius:8px;
     box-shadow:0 1px 4px rgba(0,0,0,0.15);
 }
 
+#element-game .card-inner-wrapper {
+    position:relative;
+    width:100%;
+    padding-bottom:55%;
+}
+
 #element-game .inner {
+    position:absolute;
+    top:0; left:0;
     width:100%;
     height:100%;
-    position:relative;
     transform-style:preserve-3d;
     transition:0.25s;
+    border-radius:8px;
 }
 
 #element-game .flipped .inner {
     transform:rotateY(180deg);
 }
 
-/* ▼ 中央ズレ対策ここが重要 */
 #element-game .front,
 #element-game .back {
     position:absolute;
+    top:0; left:0;
     width:100%;
     height:100%;
-
     display:flex;
     justify-content:center;
     align-items:center;
-
     text-align:center;
-    padding:2px;
-
+    padding:4px;
     backface-visibility:hidden;
+    -webkit-backface-visibility:hidden;
     border-radius:8px;
     font-weight:bold;
-
-    /* ▼ iOSでズレない設定 */
-    font-size:clamp(12px, 2.5vw, 16px);
-    line-height:1;          /* ←これ重要 */
+    font-size:clamp(10px, 2vw, 15px);
+    line-height:1.2;
+    overflow:hidden;
+    word-break:break-all;
 }
 
-/* ▼ ?専用に少し下げる（微調整） */
-#element-game .front {
-    transform:translateY(1px); /* ← iOSズレ補正 */
-}
-
-/* ▼ パステル */
 #element-game #top .front {
     background:#BBDEFB;
     color:#0D47A1;
@@ -204,6 +200,9 @@ function card(d,type){
 let c=document.createElement('div');
 c.className='card';
 
+let wrapper=document.createElement('div');
+wrapper.className='card-inner-wrapper';
+
 let i=document.createElement('div');
 i.className='inner';
 
@@ -217,7 +216,8 @@ b.textContent = type==='n'?d.n:d.s;
 
 i.appendChild(f);
 i.appendChild(b);
-c.appendChild(i);
+wrapper.appendChild(i);
+c.appendChild(wrapper);
 
 c.onclick=()=>{
 if(lock||modalOpen) return;
