@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>元素記号 神経衰弱ゲーム</title>
+
+<style>
+body { margin:0; font-family:sans-serif; overflow:hidden; }
+
+#header {
+    height:50px;
+    background:#333;
+    color:#fff;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:0 20px;
+}
+
+#game-board { display:flex; flex-direction:column; height:calc(100vh - 50px); }
+
+.area {
+    flex:1;
+    display:grid;
+    grid-template-columns:repeat(5,1fr);
+    grid-template-rows:repeat(2,1fr);
+    gap:8px;
+    padding:10px;
+    position:relative;
+}
+
+.area-title {
+    position:absolute;
+    top:50%; left:50%;
+    transform:translate(-50%,-50%);
+    font-size:3rem;
+    opacity:0.05;
+}
+
+.card { perspective:1000px; cursor:pointer; touch-action:manipulation; }
+
+.card-inner {
+    width:100%; height:100%;
+    position:relative;
+    transform-style:preserve-3d;
+    transition:transform 0.3s;
+}
+
+.card.flipped .card-inner { transform:rotateY(180deg); }
+
+.card.matched {
+    transform:scale(0);
+    opacity:0;
+    transition:0.3s;
+}
+
+.card-front, .card-back {
+    position:absolute;
+    width:100%; height:100%;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    backface-visibility:hidden;
+    border-radius:8px;
+    font-weight:bold;
+}
+
+.card-front { background:#607D8B; color:white; }
+.card-back { background:white; transform:rotateY(180deg); }
+
+#modal {
+    display:none;
+    position:fixed;
+    top:0; left:0;
+    width:100%; height:100%;
+    background:rgba(0,0,0,0.6);
+    justify-content:center;
+    align-items:center;
+}
+
+.modal-content {
+    background:white;
+    padding:20px;
+    border-radius:10px;
+    width:90%;
+    max-width:400px;
+}
+
+button {
+    width:100%;
+    padding:10px;
+    background:#4CAF50;
+    color:white;
+    border:none;
+}
+</style>
+</head>
+
+<body>
+
+<div id="header">
+<div>元素めくり</div>
+<div>
+タイム: <span id="time">0</span>秒　
+ミス: <span id="miss">0</span>
+</div>
+</div>
+
+<div id="game-board">
+<div class="area" id="top"><div class="area-title">日本語名</div></div>
+<div class="area" id="bottom"><div class="area-title">元素記号</div></div>
+</div>
+
+<div id="modal">
+<div class="modal-content">
+<h2 id="modal-title"></h2>
+<div id="modal-text"></div>
+<button id="modal-btn">次へ</button>
+</div>
+</div>
+
+<script>
+const allElements = [
+{ name:'水素', symbol:'H', note:'宇宙で一番軽い元素。未来のクリーンエネルギーとしても注目されているよ。' },
+{ name:'ヘリウム', symbol:'He', note:'吸うと声が変わるガス！風船や飛行船を浮かせるのにも使われるよ。' },
+{ name:'リチウム', symbol:'Li', note:'スマホやパソコン、電気自動車の充電式バッテリーに欠かせない金属だよ。' },
+{ name:'ベリリウム', symbol:'Be', note:'X線を通しやすいから検査機器の窓や、火花が出ない特別な工具に使われるよ。' },
+{ name:'ホウ素', symbol:'B', note:'目の洗浄液や、熱に強いガラスを丈夫にするために使われているよ。' },
+{ name:'炭素', symbol:'C', note:'ダイヤモンドもこれでできている！' },
+{ name:'窒素', symbol:'N', note:'空気の78%を占めるガス。' },
+{ name:'酸素', symbol:'O', note:'呼吸に必要な元素。' },
+{ name:'ナトリウム', symbol:'Na', note:'食塩になる元素。' },
+{ name:'マグネシウム', symbol:'Mg', note:'燃えると強く光る。' },
+{ name:'アルミニウム', symbol:'Al', note:'軽くてサビにくい金属。' },
+{ name:'ケイ素', symbol:'Si', note:'半導体の材料。' },
+{ name:'リン', symbol:'P', note:'マッチに使われる。' },
+{ name:'硫黄', symbol:'S', note:'温泉のにおいのもと。' },
+{ name:'塩素', symbol:'Cl', note:'水の消毒に使われる。' },
+{ name:'鉄', symbol:'Fe', note:'最も使われる金属。' },
+{ name:'銅', symbol:'Cu', note:'10円玉の材料。電気をよく通す。' },
+{ name:'銀', symbol:'Ag', note:'アクセサリーに使われる。' },
+{ name:'亜鉛', symbol:'Zn', note:'サビ止めに使われる。' }
+];
+
+let flippedTop=null;
+let flippedBottom=null;
+let isLocked=false;
+let isModalOpen=false;
+let matchCount=0;
+let missCount=0;
+
+let startTime=null;
+let timer;
+
+const topArea=document.getElementById('top');
+const bottomArea=document.getElementById('bottom');
+const timeEl=document.getElementById('time');
+const missEl=document.getElementById('miss');
+
+const modal=document.getElementById('modal');
+const modalTitle=document.getElementById('modal-title');
+const modalText=document.getElementById('modal-text');
+const modalBtn=document.getElementById('modal-btn');
+
+let modalCallback=null;
+
+function shuffle(a){
+return a.sort(()=>Math.random()-0.5);
+}
+
+function init(){
+flippedTop=null;
+flippedBottom=null;
+matchCount=0;
+missCount=0;
+isLocked=false;
+startTime=null;
+clearInterval(timer);
+
+timeEl.textContent=0;
+missEl.textContent=0;
+
+topArea.innerHTML='<div class="area-title">日本語名</div>';
+bottomArea.innerHTML='<div class="area-title">元素記号</div>';
+
+let pairs=shuffle([...allElements]).slice(0,10);
+
+shuffle([...pairs]).forEach(d=>topArea.appendChild(createCard(d,'name')));
+shuffle([...pairs]).forEach(d=>bottomArea.appendChild(createCard(d,'symbol')));
+}
+
+function createCard(data,type){
+let card=document.createElement('div');
+card.className='card';
+
+let inner=document.createElement('div');
+inner.className='card-inner';
+
+let front=document.createElement('div');
+front.className='card-front';
+front.textContent='?';
+
+let back=document.createElement('div');
+back.className='card-back';
+back.textContent= type==='name'?data.name:data.symbol;
+
+inner.appendChild(front);
+inner.appendChild(back);
+card.appendChild(inner);
+
+card.onclick=()=>clickCard(card,data,type);
+
+return card;
+}
+
+function clickCard(card,data,type){
+if(isLocked||isModalOpen) return;
+if(card.classList.contains('flipped')) return;
+
+if(!startTime){
+startTime=Date.now();
+timer=setInterval(()=>{
+timeEl.textContent=Math.floor((Date.now()-startTime)/1000);
+},250);
+}
+
+card.classList.add('flipped');
+
+if(type==='name'){
+if(flippedTop) flippedTop.element.classList.remove('flipped');
+flippedTop={element:card,data};
+}else{
+if(flippedBottom) flippedBottom.element.classList.remove('flipped');
+flippedBottom={element:card,data};
+}
+
+if(flippedTop && flippedBottom){
+check();
+}
+}
+
+function check(){
+isLocked=true;
+
+setTimeout(()=>{
+if(flippedTop.data.symbol===flippedBottom.data.symbol){
+
+showModal(
+'正解！',
+`<strong>${flippedTop.data.symbol} は、${flippedTop.data.name}だね。</strong><br><br>${flippedTop.data.note}`,
+()=>{
+flippedTop.element.classList.add('matched');
+flippedBottom.element.classList.add('matched');
+matchCount++;
+reset();
+if(matchCount===10) end();
+}
+);
+
+}else{
+
+missCount++;
+missEl.textContent=missCount;
+
+showModal(
+'ちがうよ',
+`<strong>${flippedBottom.data.symbol} は、${flippedBottom.data.name}だよ。</strong><br><br>${flippedBottom.data.note}`,
+()=>{
+flippedTop.element.classList.remove('flipped');
+flippedBottom.element.classList.remove('flipped');
+reset();
+}
+);
+
+}
+},500);
+}
+
+function reset(){
+flippedTop=null;
+flippedBottom=null;
+isLocked=false;
+}
+
+function showModal(title,text,cb){
+isModalOpen=true;
+modalTitle.textContent=title;
+modalText.innerHTML=text;
+modalCallback=cb;
+modal.style.display='flex';
+}
+
+modalBtn.onclick=()=>{
+modal.style.display='none';
+isModalOpen=false;
+if(modalCallback) modalCallback();
+};
+
+modal.onclick=(e)=>{
+if(e.target===modal){
+modal.style.display='none';
+isModalOpen=false;
+if(modalCallback) modalCallback();
+}
+};
+
+function end(){
+clearInterval(timer);
+showModal('クリア！',`タイム ${timeEl.textContent} 秒<br>ミス ${missCount}`,init);
+}
+
+window.onload=init;
+</script>
+
+</body>
+</html>
