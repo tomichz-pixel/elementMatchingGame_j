@@ -14,36 +14,50 @@
     font-size:14px;
 }
 
-/* ▼ 高さ固定をやめる */
+/* ▼ 高さ固定しない */
 #element-game .board {
     display:flex;
     flex-direction:column;
 }
 
-/* ▼ 横幅に応じてカード数が変わる */
+/* ▼ デフォルト（スマホ） */
 #element-game .area {
     display:grid;
 
-    /* 小さい画面でも崩れない設定 */
-    grid-template-columns:repeat(auto-fit, minmax(80px, 1fr));
+    /* かなり小さくして縦詰まり防止 */
+    grid-template-columns:repeat(auto-fit, minmax(60px, 1fr));
 
-    gap:8px;
-    padding:8px;
+    gap:6px;
+    padding:6px;
+}
+
+/* ▼ タブレット（iPad） */
+@media (min-width: 600px) {
+    #element-game .area {
+        grid-template-columns:repeat(auto-fit, minmax(70px, 1fr));
+    }
+}
+
+/* ▼ PC */
+@media (min-width: 900px) {
+    #element-game .area {
+        grid-template-columns:repeat(auto-fit, minmax(80px, 1fr));
+    }
 }
 
 /* ▼ 上下区切り */
 #element-game #bottom {
-    border-top: 3px dashed #ccc;
+    border-top: 2px dashed #ccc;
 }
 
-/* ▼ カード */
+/* ▼ カード（さらに小さく） */
 #element-game .card {
     width:100%;
-    aspect-ratio: 3 / 2;
+    aspect-ratio: 4 / 3; /* ← 少し横長にして高さ削減 */
     perspective:1000px;
     cursor:pointer;
-    border-radius:10px;
-    box-shadow:0 2px 6px rgba(0,0,0,0.15);
+    border-radius:8px;
+    box-shadow:0 1px 4px rgba(0,0,0,0.15);
 }
 
 /* ▼ 中身 */
@@ -52,7 +66,7 @@
     height:100%;
     position:relative;
     transform-style:preserve-3d;
-    transition:0.3s;
+    transition:0.25s;
 }
 
 #element-game .flipped .inner {
@@ -69,14 +83,14 @@
     justify-content:center;
     align-items:center;
     backface-visibility:hidden;
-    border-radius:10px;
+    border-radius:8px;
     font-weight:bold;
 
-    /* ▼ 小さい画面でも見える文字サイズ */
-    font-size:clamp(12px, 2.5vw, 18px);
+    /* ▼ かなり柔軟な文字サイズ */
+    font-size:clamp(10px, 2.2vw, 16px);
 }
 
-/* ▼ パステルカラー */
+/* ▼ パステル */
 #element-game #top .front {
     background:#BBDEFB;
     color:#0D47A1;
@@ -87,7 +101,6 @@
     color:#E65100;
 }
 
-/* ▼ 裏面 */
 #element-game .back {
     background:white;
     transform:rotateY(180deg);
@@ -96,7 +109,7 @@
 #element-game #top .back { color:#1565C0; }
 #element-game #bottom .back { color:#E65100; }
 
-/* ▼ 消える演出 */
+/* ▼ 消える */
 #element-game .matched {
     opacity:0;
     transform:scale(0);
