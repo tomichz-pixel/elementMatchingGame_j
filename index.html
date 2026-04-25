@@ -11,97 +11,106 @@
     justify-content:space-between;
     align-items:center;
     padding:0 15px;
+    font-size:14px;
 }
 
-/* ▼ 高さを可変に（iPad対策） */
+/* ▼ 高さ固定をやめる */
 #element-game .board {
     display:flex;
     flex-direction:column;
-    height:70vh;
-    max-height:700px;
 }
 
+/* ▼ 横幅に応じてカード数が変わる */
 #element-game .area {
-    flex:1;
     display:grid;
-    grid-template-columns:repeat(5,1fr);
-    grid-template-rows:repeat(2,1fr);
-    gap:6px;
+
+    /* 小さい画面でも崩れない設定 */
+    grid-template-columns:repeat(auto-fit, minmax(80px, 1fr));
+
+    gap:8px;
     padding:8px;
-    position:relative;
 }
 
-/* ▼ 上下の区切り */
+/* ▼ 上下区切り */
 #element-game #bottom {
     border-top: 3px dashed #ccc;
 }
 
-/* ▼ カード（縦長防止） */
+/* ▼ カード */
 #element-game .card {
+    width:100%;
+    aspect-ratio: 3 / 2;
     perspective:1000px;
     cursor:pointer;
-    aspect-ratio: 3 / 2;
-    border-radius:8px;
+    border-radius:10px;
     box-shadow:0 2px 6px rgba(0,0,0,0.15);
 }
 
+/* ▼ 中身 */
 #element-game .inner {
-    width:100%; height:100%;
+    width:100%;
+    height:100%;
     position:relative;
     transform-style:preserve-3d;
     transition:0.3s;
 }
 
-#element-game .flipped .inner { transform:rotateY(180deg); }
+#element-game .flipped .inner {
+    transform:rotateY(180deg);
+}
 
+/* ▼ 表裏 */
 #element-game .front,
 #element-game .back {
     position:absolute;
-    width:100%; height:100%;
+    width:100%;
+    height:100%;
     display:flex;
     justify-content:center;
     align-items:center;
     backface-visibility:hidden;
-    border-radius:8px;
+    border-radius:10px;
     font-weight:bold;
+
+    /* ▼ 小さい画面でも見える文字サイズ */
+    font-size:clamp(12px, 2.5vw, 18px);
 }
 
 /* ▼ パステルカラー */
 #element-game #top .front {
-    background:#90CAF9;
+    background:#BBDEFB;
     color:#0D47A1;
 }
 
 #element-game #bottom .front {
-    background:#FFCC80;
+    background:#FFE0B2;
     color:#E65100;
 }
 
+/* ▼ 裏面 */
 #element-game .back {
     background:white;
     transform:rotateY(180deg);
 }
 
-/* ▼ 裏面文字色 */
-#element-game #top .back {
-    color:#1565C0;
-}
+#element-game #top .back { color:#1565C0; }
+#element-game #bottom .back { color:#E65100; }
 
-#element-game #bottom .back {
-    color:#E65100;
-}
-
+/* ▼ 消える演出 */
 #element-game .matched {
     opacity:0;
     transform:scale(0);
     transition:0.3s;
 }
 
+/* ▼ モーダル */
 #element-game .modal {
     display:none;
     position:absolute;
-    top:0; left:0;
-    width:100%; height:100%;
+    top:0;
+    left:0;
+    width:100%;
+    height:100%;
     background:rgba(0,0,0,0.6);
     justify-content:center;
     align-items:center;
@@ -112,14 +121,18 @@
     padding:20px;
     border-radius:10px;
     width:90%;
+    max-width:400px;
 }
 
+/* ▼ ボタン */
 #element-game button {
     width:100%;
     padding:10px;
     background:#4CAF50;
     color:white;
     border:none;
+    border-radius:6px;
+    font-size:14px;
 }
 </style>
 
