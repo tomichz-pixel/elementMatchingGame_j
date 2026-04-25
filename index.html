@@ -14,42 +14,33 @@
     font-size:13px;
 }
 
-/* ▼ 高さに依存しない */
 #element-game .board {
     display:flex;
     flex-direction:column;
 }
 
-/* ▼ かなり詰める */
+/* ▼ 少し余裕を持たせる */
 #element-game .area {
     display:grid;
-
-    /* 横を優先して縦を減らす */
-    grid-template-columns:repeat(auto-fit, minmax(55px, 1fr));
-
-    gap:5px;
+    grid-template-columns:repeat(auto-fit, minmax(60px, 1fr));
+    gap:6px;
     padding:6px;
 }
 
-/* ▼ 区切り */
 #element-game #bottom {
     border-top: 2px dashed #ccc;
 }
 
-/* ▼ 超横長カード */
+/* ▼ 高さを少し戻す（重要） */
 #element-game .card {
     width:100%;
-
-    /* ← ここが最大の変更点 */
-    aspect-ratio: 2.2 / 1;
-
+    aspect-ratio: 2 / 1; /* ← 2.2 → 2 にして余裕を確保 */
     perspective:1000px;
     cursor:pointer;
-    border-radius:6px;
-    box-shadow:0 1px 3px rgba(0,0,0,0.15);
+    border-radius:8px;
+    box-shadow:0 1px 4px rgba(0,0,0,0.15);
 }
 
-/* ▼ 内側 */
 #element-game .inner {
     width:100%;
     height:100%;
@@ -62,25 +53,32 @@
     transform:rotateY(180deg);
 }
 
-/* ▼ 表裏 */
+/* ▼ 中央ズレ対策ここが重要 */
 #element-game .front,
 #element-game .back {
     position:absolute;
     width:100%;
     height:100%;
+
     display:flex;
     justify-content:center;
     align-items:center;
+
     text-align:center;
     padding:2px;
 
     backface-visibility:hidden;
-    border-radius:6px;
+    border-radius:8px;
     font-weight:bold;
 
-    /* ▼ 6文字読めればOK設計 */
-    font-size:clamp(10px, 2vw, 14px);
-    line-height:1.1;
+    /* ▼ iOSでズレない設定 */
+    font-size:clamp(12px, 2.5vw, 16px);
+    line-height:1;          /* ←これ重要 */
+}
+
+/* ▼ ?専用に少し下げる（微調整） */
+#element-game .front {
+    transform:translateY(1px); /* ← iOSズレ補正 */
 }
 
 /* ▼ パステル */
@@ -102,14 +100,12 @@
 #element-game #top .back { color:#1565C0; }
 #element-game #bottom .back { color:#E65100; }
 
-/* ▼ 消える */
 #element-game .matched {
     opacity:0;
     transform:scale(0);
     transition:0.25s;
 }
 
-/* ▼ モーダル */
 #element-game .modal {
     display:none;
     position:absolute;
@@ -130,7 +126,6 @@
     max-width:380px;
 }
 
-/* ▼ ボタン */
 #element-game button {
     width:100%;
     padding:10px;
